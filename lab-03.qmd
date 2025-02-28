@@ -1,0 +1,9 @@
+---
+title: "Lab 3: COVID-19 Data Wrangling and Visualization"
+subtitle: "Ecosystem Science and Sustainability 330"
+author: 
+ - name: Mckenna Cooper
+   email: mcooper2@colostate.edu
+format: html
+---
+
