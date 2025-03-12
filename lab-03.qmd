@@ -6,4 +6,164 @@ author:
    email: mcooper2@colostate.edu
 format: html
 ---
+```{r}
+#| include: false
+library(tidyverse)
+library(flextable)
+library(zoo)
+library(readr)
+```
+
+# Question 1: Public Data
+Open data is essential for understanding climate trends, managing resources, and protecting public health. When we have easy access to historical and real-time environmental data, we can track changes, predict risks, and make informed decisions. But when that data disappears due to politics, funding cuts, or neglect, we lose decades of progress. It becomes harder to see long-term trends, hold polluters accountable, or prepare for disasters.
+
+That’s why independent archiving and open collaboration matter. Keeping environmental data accessible isn’t just about science, it’s about transparency, justice, and giving people the tools to fight for a livable future.
+
+# Question 2: Daily Summary
+## Step 1
+```{r}
+covid_data = read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
+```
+## Step 2
+```{r}
+txt <- "2022-02-01"
+class(txt)
+my.date <- as.Date(txt)
+class(my.date)
+my.state <- "Colorado"
+```
+## Step 3
+```{r}
+covid_subset <- covid_data %>%
+  filter(state == my.state) %>%
+  group_by(county) %>%
+  arrange(county, date) %>%
+  mutate(
+    new_cases = cases - lag(cases, default = first(cases)), 
+    new_deaths = deaths - lag(deaths, default = first(deaths))
+  ) %>%
+  ungroup()
+```
+## Step 4:
+Table 1: Top 5 Counties with the Most Cumulative Cases
+```{r}
+top_cumulative_cases <- covid_subset %>%
+  group_by(county) %>%
+  summarize(total_cases = max(cases, na.rm = TRUE)) %>%
+  arrange(desc(total_cases)) %>%
+  slice_head(n = 5)
+top_cumulative_cases_flex <- flextable(top_cumulative_cases) %>%
+  add_header_lines("The Top 5 Counties with the Most Cumulative Cases in Colorado")
+top_cumulative_cases_flex
+```
+Table 2: Top 5 Counties with the Most New Cases on my.date
+```{r}
+top_new_cases <- covid_subset %>%
+  filter(date == my.date) %>%  
+  arrange(desc(new_cases)) %>%  
+  slice_head(n = 5) 
+top_new_cases_flex <- flextable(top_new_cases) %>%
+  add_header_lines("The Top 5 Counties with the Most New Cases on 2022-02-01")
+top_new_cases_flex
+```
+
+# Question 3: Normalizing Data
+```{r}
+population_data <- read_csv("https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv")
+```
+```{r}
+population_data <- population_data %>%
+  mutate(
+    STATE = str_pad(as.character(STATE), width = 2, side = "left", pad = "0"),
+    COUNTY = str_pad(as.character(COUNTY), width = 3, side = "left", pad = "0"),
+    FIP = paste0(STATE, COUNTY)  
+  )
+```
+
+```{r}
+population_data <- population_data %>%
+  mutate(COUNTY = as.character(COUNTY)) %>%
+  filter(COUNTY != "000")
+```
+
+
+```{r}
+range(population_data$`POPESTIMATE2021`, na.rm = TRUE)
+```
+```{r}
+covid_data <- covid_data %>%
+  rename(FIP = fips)
+```
+
+```{r}
+covid_population_data <- covid_data %>%
+  left_join(population_data, by = "FIP")
+```
+```{r}
+covid_population_data <- covid_population_data %>%
+  group_by(county) %>%
+  mutate(new_cases = cases - lag(cases, default = first(cases))) %>%
+  ungroup() %>%
+  mutate(per_capita_new_cases = new_cases / POPESTIMATE2021)
+
+covid_population_data <- covid_population_data %>%
+  group_by(county) %>%
+  arrange(date) %>%
+  mutate(cumulative_cases = cumsum(cases)) %>%
+  ungroup() 
+
+covid_population_data <- covid_population_data %>%
+  mutate(per_capita_cumulative_cases = cumulative_cases / POPESTIMATE2021)
+```
+Table 1
+```{r}
+top_cumulative_cases <- covid_population_data %>%
+  select(county, per_capita_cumulative_cases) %>%
+  arrange(desc(per_capita_cumulative_cases)) %>%
+  slice_head(n = 5)
+
+top_cumulative_cases_flex <- flextable(top_cumulative_cases) %>%
+  add_header_lines("The Top 5 Counties with the Most Cumulative Cases Per Capita (2021-01-01)")
+
+top_cumulative_cases_flex
+```
+Table 2
+```{r}
+top_new_cases <- covid_population_data %>%
+  select(county, per_capita_new_cases) %>%
+  arrange(desc(per_capita_new_cases)) %>%
+  slice_head(n = 5)
+
+top_new_cases_flex <- flextable(top_new_cases) %>%
+  add_header_lines("The Top 5 Counties with the Most New Cases Per Capita (2021-01-01)")
+
+top_new_cases_flex
+```
+
+# Question 4: Rolling Thresholds
+```{r}
+
+```
+
+```
+
+# Question 5: Death Toll
+```{r}
+
+```
+
+# Question 6: Multi-State
+```{r}
+
+```
+
+# Question 7: Space & Time
+```{r}
+
+```
+
+# Question 8: Cases vs. Deaths
+```{r}
+
+```
 
