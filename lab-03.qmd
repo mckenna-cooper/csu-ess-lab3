@@ -48,12 +48,13 @@ covid_subset <- covid_data %>%
 Table 1: Top 5 Counties with the Most Cumulative Cases
 ```{r}
 top_cumulative_cases <- covid_subset %>%
+  filter(date == my.date) %>%
   group_by(county) %>%
   summarize(total_cases = max(cases, na.rm = TRUE)) %>%
   arrange(desc(total_cases)) %>%
   slice_head(n = 5)
 top_cumulative_cases_flex <- flextable(top_cumulative_cases) %>%
-  add_header_lines("The Top 5 Counties with the Most Cumulative Cases in Colorado")
+  add_header_lines("The Top 5 Counties with the Most Cumulative Cases in Colorado on February 1st, 2021")
 top_cumulative_cases_flex
 ```
 Table 2: Top 5 Counties with the Most New Cases on my.date
@@ -90,61 +91,78 @@ population_data <- population_data %>%
 ```{r}
 range(population_data$`POPESTIMATE2021`, na.rm = TRUE)
 ```
-```{r}
-covid_data <- covid_data %>%
-  rename(FIP = fips)
-```
 
 ```{r}
-covid_population_data <- covid_data %>%
-  left_join(population_data, by = "FIP")
+covid_subset_renamed <- covid_subset %>%
+  rename(FIP = fips)
+merge_data <- covid_subset_renamed %>%
+  inner_join(population_data, by = "FIP")
 ```
 ```{r}
-covid_population_data <- covid_population_data %>%
+merge_data <- merge_data %>%
   group_by(county) %>%
   mutate(new_cases = cases - lag(cases, default = first(cases))) %>%
   ungroup() %>%
   mutate(per_capita_new_cases = new_cases / POPESTIMATE2021)
 
-covid_population_data <- covid_population_data %>%
+merge_data <- merge_data %>%
   group_by(county) %>%
   arrange(date) %>%
   mutate(cumulative_cases = cumsum(cases)) %>%
   ungroup() 
 
-covid_population_data <- covid_population_data %>%
+merge_data <- merge_data %>%
   mutate(per_capita_cumulative_cases = cumulative_cases / POPESTIMATE2021)
 ```
 Table 1
 ```{r}
-top_cumulative_cases <- covid_population_data %>%
-  select(county, per_capita_cumulative_cases) %>%
+topfive_cumulative_cases <- merge_data %>%
+  filter(date == my.date) %>%
+  filter(state == my.state) %>%
+  select(county, date, per_capita_cumulative_cases) %>%
   arrange(desc(per_capita_cumulative_cases)) %>%
   slice_head(n = 5)
+topfive_cumulative_cases_flex <- flextable(topfive_cumulative_cases) %>%
+  add_header_lines("The Top 5 Counties with the Most Cumulative Cases Per Capita (2021-02-01)")
 
-top_cumulative_cases_flex <- flextable(top_cumulative_cases) %>%
-  add_header_lines("The Top 5 Counties with the Most Cumulative Cases Per Capita (2021-01-01)")
-
-top_cumulative_cases_flex
+topfive_cumulative_cases_flex
 ```
 Table 2
 ```{r}
-top_new_cases <- covid_population_data %>%
+top_new_cases <- merge_data %>%
   select(county, per_capita_new_cases) %>%
   arrange(desc(per_capita_new_cases)) %>%
   slice_head(n = 5)
 
 top_new_cases_flex <- flextable(top_new_cases) %>%
-  add_header_lines("The Top 5 Counties with the Most New Cases Per Capita (2021-01-01)")
+  add_header_lines("The Top 5 Counties with the Most New Cases Per Capita (2021-02-01)")
 
 top_new_cases_flex
 ```
 
 # Question 4: Rolling Thresholds
 ```{r}
-
-```
-
+latest_date <- max(merge_data$date)  
+filtered_data <- merge_data %>%
+  filter(date >= (latest_date - 14))
+county_summary <- filtered_data %>%
+  group_by(county) %>%
+  summarize(
+    total_new_cases = sum(new_cases, na.rm = TRUE),
+    POPESTIMATE2021 = first(POPESTIMATE2021),
+    cases_per_100k = (total_new_cases / POPESTIMATE2021) * 100000
+  ) %>%
+  arrange(desc(cases_per_100k)) 
+top_5_counties <- head(county_summary, 5)
+top_5_table <- flextable(top_5_counties) %>%
+  set_header_labels(county = "County", 
+                    total_new_cases = "New Cases (14 days)", 
+                    POPESTIMATE2021 = "Population Estimate (2021)", 
+                    cases_per_100k = "Cases per 100K") %>%
+          theme_vanilla() %>%
+          autofit()
+top_5_table %>%
+  flextable::htmltools_value()
 ```
 
 # Question 5: Death Toll
