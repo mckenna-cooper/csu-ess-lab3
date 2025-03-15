@@ -98,6 +98,7 @@ covid_subset_renamed <- covid_subset %>%
 merge_data <- covid_subset_renamed %>%
   inner_join(population_data, by = "FIP")
 ```
+
 ```{r}
 merge_data <- merge_data %>%
   group_by(county) %>%
@@ -159,16 +160,43 @@ top_5_table <- flextable(top_5_counties) %>%
                     total_new_cases = "New Cases (14 days)", 
                     POPESTIMATE2021 = "Population Estimate (2021)", 
                     cases_per_100k = "Cases per 100K") %>%
-          theme_vanilla() %>%
+  theme_vanilla() %>%
           autofit()
 top_5_table %>%
   flextable::htmltools_value()
 ```
 
 # Question 5: Death Toll
-```{r}
 
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+covid_impact_co <- covid_population_data %>%
+  filter(year(date) == 2021, state == "Colorado") %>%  
+  group_by(county) %>%
+  summarize(
+    total_covid_deaths_2021 = sum(deaths, na.rm = TRUE),
+    total_deaths_2021 = max(DEATHS2021, na.rm = TRUE)
+  ) %>%
+  mutate(
+    covid_death_percentage = (total_covid_deaths_2021 / total_deaths_2021)  # Fix scaling issue
+  ) %>%
+  filter(covid_death_percentage >= 20)  # Keep counties where COVID deaths ≥ 20%
+
+# Create the improved plot
+ggplot(covid_impact_co, aes(x = covid_death_percentage, y = reorder(county, covid_death_percentage))) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Colorado Counties Where COVID Deaths Were ≥ 20% of Total Deaths in 2021",
+       x = "COVID Deaths as % of Total Deaths",
+       y = "County") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 4),
+    plot.title = element_text(hjust = 0.5)
+  )
 ```
+
 
 # Question 6: Multi-State
 ```{r}
