@@ -74,19 +74,17 @@ population_data <- read_csv("https://www2.census.gov/programs-surveys/popest/dat
 ```
 ```{r}
 population_data <- population_data %>%
+  mutate(COUNTY = as.character(COUNTY)) %>%
+  filter(COUNTY != "000")
+population_data <- population_data %>%
   mutate(
     STATE = str_pad(as.character(STATE), width = 2, side = "left", pad = "0"),
     COUNTY = str_pad(as.character(COUNTY), width = 3, side = "left", pad = "0"),
     FIP = paste0(STATE, COUNTY)  
   )
+covid_subset_renamed <- covid_subset %>%
+  rename(FIP = fips)
 ```
-
-```{r}
-population_data <- population_data %>%
-  mutate(COUNTY = as.character(COUNTY)) %>%
-  filter(COUNTY != "000")
-```
-
 
 ```{r}
 range(population_data$`POPESTIMATE2021`, na.rm = TRUE)
@@ -167,6 +165,25 @@ top_5_table %>%
 ```
 
 # Question 5: Death Toll
+```{r}
+population_data <- population_data %>%
+  mutate(COUNTY = as.character(COUNTY)) %>%
+  filter(COUNTY != "000")
+population_data <- population_data %>%
+  mutate(
+    STATE = str_pad(as.character(STATE), width = 2, side = "left", pad = "0"),
+    COUNTY = str_pad(as.character(COUNTY), width = 3, side = "left", pad = "0"),
+    FIP = paste0(STATE, COUNTY)  
+  )
+covid_data <- covid_data %>%
+  rename(FIP = fips)
+```
+
+```{r}
+covid_population_data <- covid_data %>%
+  inner_join(population_data, by = "FIP")
+```
+
 
 ```{r}
 library(dplyr)
