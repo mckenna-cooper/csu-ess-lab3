@@ -217,10 +217,47 @@ ggplot(covid_impact_co, aes(x = covid_death_percentage, y = reorder(county, covi
 
 # Question 6: Multi-State
 ```{r}
+library(dplyr)
+library(ggplot2)
+states_of_interest <- c("New York", "Colorado", "Alabama", "Ohio")
 
+state_data <- covid_population_data %>%
+  filter(state %in% states_of_interest) %>%
+  arrange(state, date)  
+state_data <- state_data %>%
+  group_by(state) %>%
+  mutate(new_cases = cases - lag(cases, default = first(cases))) %>%
+  ungroup()
+ggplot(state_data, aes(x = date, y = new_cases)) +
+  geom_bar(stat = "identity", fill = "skyblue") +  
+  facet_wrap(~ state, scales = "free_y") + 
+  theme_minimal() +
+  labs(title = "Daily New COVID-19 Cases by State",
+       x = "Date",
+       y = "Number of New Cases") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 # Question 7: Space & Time
+```{r}
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(lubridate)
+library(tidyr)
+
+centroids_url <- "https://raw.githubusercontent.com/mikejohnson51/csu-ess-330/refs/heads/main/resources/county-centroids.csv"
+centroids_data <- read_csv(centroids_url)
+centroids_data_rename <- centroids_data %>%
+  rename(FIP = fips)
+covid_centroids_data <- covid_population_data %>%
+  inner_join(centroids_data_rename, by = "FIP")
+```
+```{r}
+
+```
+
 ```{r}
 
 ```
